@@ -1,9 +1,9 @@
-import pgzrun
+import pgzrun #I'm running this in spyder
 
 WIDTH = 800
 HEIGHT = 600
 
-cadet = Actor('cadet_1')
+cadet = Actor('cadet_1') #We'll have to make a graphic for our cadet
 cadet.bottomleft = (0,550)
 
 corona = Actor('corona')
