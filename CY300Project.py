@@ -33,6 +33,10 @@ https://pygame-zero.readthedocs.io/en/stable/introduction.html #general pygame t
 http://www.penguintutor.com/projects/docs/space-asteroids-pgzero.pdf #code for jump
 """
 
+
+pgzrun.go() #Run the game with this command. We are using Spyder
+
+
 import pygame, pgzrun, random
 
 #Constants
@@ -82,7 +86,8 @@ def draw():
 #Pygame zero objects and Python objects represent the state of the game
 #None -> None
 def update():
-    """Updates various objects to maintain the current state of the game.    
+    """
+    Updates various objects to maintain the current state of the game.    
     """
     global game_status, high_scores, game_timer, sideRoom
     if game_status == 0:
@@ -117,12 +122,20 @@ def update():
 
 ###Other functions
 
+#Procedure: on_key_down
 def on_key_down():
+    """
+    Determines if cadet jumps outside of update loop
+    """
     global isJump
     if keyboard.space:
         isJump = True
 
+#Procedure: draw_game_status_one
 def draw_game_status_one():
+    """
+    While playing game, draws screen with time, health, and character
+    """
     global health, corona_hit
     screen.clear()
     screen.blit(background, (0,190))
@@ -137,7 +150,12 @@ def draw_game_status_one():
         corona.draw()
     cadet.draw()
 
+#Procedure: reset
 def reset():
+    """
+    After the end screen before starting a new game, this procedure resets
+    global variables.
+    """
     global health, game_timer, isJump, jumpCount, corona_hit
     health = 2
     game_timer = 0
@@ -146,7 +164,11 @@ def reset():
     jumpCount = 10
     corona_hit = False
 
+#Procedure: move_cadet
 def move_cadet():
+    """
+    While playing game, this procedure moves the cadet left/right and jumps
+    """
     global jumpCount, isJump
     if isJump == True:
         if jumpCount >= -10:
@@ -165,17 +187,32 @@ def move_cadet():
         if (cadet.x < 760):
             cadet.x += 4
 
+#Procedure: move_corona
 def move_corona():
+    """
+    While playing game, this procedure moves the corona across the screen.
+    If the corona crosses the left boundary, reset it at a random height.
+    """
     if corona.right < 0:
         corona.pos = (WIDTH,random.randint(30,550))
     corona.pos = (corona.x - 3.5, corona.y)
 
+#Procedure: detect_hits
 def detect_hits():
+    """
+    While playing game, this function determines if the cadet was hit
+    """
     global corona_hit
     if cadet.colliderect(corona):
         corona_hit = True
-        
+
+#Procedure: game_status_three
 def game_status_three():
+    """
+    After entering a side room, this procedure determines what the cadet will
+    encounter by random choice (Health Boost, TACs, CGR) then takes appropriate
+    actions. For now, we are just drawing a message on the screen.
+    """
     global sideRoom, room_choice
     if sideRoom:
         room_choice = random.choices(['Health','TAC','CGR'], [0.5, 0.25, 0.25]) #Change probability based off game_level
@@ -186,5 +223,3 @@ def game_status_three():
         screen.draw.text("TAC! Press Enter to return", (100, 300),color="white", fontsize=32)
     if room_choice == ["Health"]:
         screen.draw.text("Health Boost! Press Enter to return", (100, 300),color="white", fontsize=32)
-        
-pgzrun.go()
