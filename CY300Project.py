@@ -34,10 +34,8 @@ http://www.penguintutor.com/projects/docs/space-asteroids-pgzero.pdf #code for j
 """
 
 
-pgzrun.go() #Run the game with this command. We are using Spyder
-
-
 import pygame, pgzrun, random
+
 
 #Constants
 WIDTH = 800
@@ -223,3 +221,5 @@ def game_status_three():
         screen.draw.text("TAC! Press Enter to return", (100, 300),color="white", fontsize=32)
     if room_choice == ["Health"]:
         screen.draw.text("Health Boost! Press Enter to return", (100, 300),color="white", fontsize=32)
+
+pgzrun.go() #Run the game with this command. We are using Spyder      
