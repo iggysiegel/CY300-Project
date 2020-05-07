@@ -4,20 +4,16 @@ File: CY300Project.py
 Comments:
 "Cadet vs. Covid" is a side-scrolling dungeon game. The player uses the arrow keys to
 move an avatar across the level; each level represents one floor of Davis barracks.
+For every increasing floor of Davis, the difficulty of the game increases.
 While in the hallway, players must jump to avoid the airborne coronavirus particles.
 On each floor there are several doors that players can choose to enter; each room
-randomly contains one of the following: CGR, TACs, or medical supplies. Medical supplies
-increases the player's health, giving them more times they can be hit by coronavirus before
-becoming infected and losing. Running into TACs forces players to act fast in order to avoid
-losing time to a tasking (time penalty). Running into CGR forces players to act fast to 
-avoid mandatory Commadant's PT (health penalty). At the end of each level, players enter a
-final door that takes them to the next level, where the enemies are faster.
-Currently, the code displays a basic start screen and a rough initial level. The variables
-necessary to play are game_status (which tells the loop what to show), the timer (which
-corresponds to score), health (which is the amount of lives left), and a few others that
-support movement around the screen. Future additions will include the ability to transition
-from the hallway (game state 2) to a room (game state 3) to interact with the enemies, a
-method of increasing the difficulty to match the level, and a final boss.
+randomly contains either CGR or medical supplies. Medical supplies increases the player's
+health, giving them more times they can be hit by coronavirus before becoming infected and losing.
+Running into CGR forces players to leave the side room. The code displays a basic start screen
+with starting instructions. The variables necessary to play are game_status 
+(which tells the loop what to show), the timer (which corresponds to score), 
+health (which is the amount of lives left), and a few others that support movement
+around the screen.
  
 The project team includes CDTs Siegel and Bolen. We use the modules pygame, pgzrun, and random.
 """
@@ -25,8 +21,9 @@ The project team includes CDTs Siegel and Bolen. We use the modules pygame, pgzr
 
 """
 Attribution:
-https://pygame-zero.readthedocs.io/en/stable/introduction.html #general pygame tutorial
-http://www.penguintutor.com/projects/docs/space-asteroids-pgzero.pdf #code for jump
+http://www.penguintutor.com/projects/docs/space-asteroids-pgzero.pdf
+
+We modified a lot of code from this project for character movement, especially jumping.
 """
 
 
@@ -38,27 +35,23 @@ WIDTH = 800
 HEIGHT = 600
 
 #Actors
-cadet = Actor('cadet_1')
-cadet.bottomleft = (0,550)
+cadet = Actor('fullcadet')
+cadet.bottomleft = (WIDTH/2,550)
 
 corona = Actor('corona')
-corona.pos = (WIDTH,random.randint(30,550))
+corona.pos = (WIDTH,random.randint(215,550))
 
-Health = Actor('health')
+Health = Actor('healthboost')
 Health.pos = (60,100)
 
-CGR = Actor('cgr')
+CGR = Actor('cgrmonster')
 CGR.pos = (random.randint(0,WIDTH),random.randint(0,HEIGHT))
 
-#Background
-background = ("smallmap.png")
-
 #Variables
-game_status = 0 #Status 0 = start screen, 1 = playing game, 2 = end screen, 3 = side room
-game_level = 1 #There are six levels. We will adjust difficulty for this later
+game_status = 0 #Status 0 = start screen, 1 = playing game, 2 = death screen, 3 = side room, 4 = finish screen
+game_level = 1 #There are six levels corresponding to six companies in Davis
 game_timer = 0
-high_scores = [0] #This is actually "low" score right now
-health = 2 #Low starting health for testing purposes
+health = 5
 corona_hit = False
 isJump = False
 jumpCount = 10
@@ -70,6 +63,77 @@ CGR_movement = (random.random() * random.choice((-1, 1)),random.random() * rando
 CGR_hit = False
 wash_hands = 0
 
+
+###Class Background
+class Background():
+    """
+    Background class to create a background and allow scrolling backgrounds
+    with character movement
+    """
+    
+    #Method: __init__
+    #Self, File Name -> Background Object
+    def __init__(self,file):
+        """Creates a new Background object"""
+        self.file = file
+        self.x = 5000
+        self.x1 = 0
+        self.x2 = 1086
+    
+    #Method: __repr__
+    #Self -> String    
+    def __repr__(self):
+        """Object representation in interpreter"""
+        result_str = "Background({})".format(self.file)
+        return result_str
+    
+    #Method: scroll
+    #Self, Integer -> 
+    def scroll(self,x):
+        self.x += x
+        self.x1 += x
+        self.x2 += x
+        if abs(self.x1) > 1086:
+            self.x1 *= -1
+        if abs(self.x2) > 1086:
+            self.x2 *= -1
+        screen.blit(self.file,(self.x1,190))
+        screen.blit(self.file,(self.x2,190))
+    
+    #Method: blit
+    #Self ->     
+    def blit(self):
+        """Blit background object"""
+        screen.blit(self.file,(self.x1,190))
+        screen.blit(self.file,(self.x2,190))
+    
+    #Method: isDoor
+    #Self -> Boolean
+    def isDoor(self):
+        """Returns True if character is on door"""
+        if -916 < self.x1 < -820 and 174 < self.x2 < 270:
+            return True
+        elif 656 < self.x1 < 744 and -430 < self.x2 < -342:
+            return True
+        elif -916 < self.x2 < -820 and 174 < self.x1 < 270:
+            return True
+        elif 656 < self.x2 < 744 and -430 < self.x1 < -342:
+            return True
+        else:
+            return False
+    
+    #Method: levelComplete
+    #Self -> Boolean
+    def levelComplete(self):
+        """Returns True if character has reached end of level"""
+        if self.x < 0:
+            return True
+    
+background = Background("a1.png") #Level 1 background
+
+
+sideroomscene = ('sideroombackground') #Side Room background
+
 ###Top Level Procedures (Draw and Update)
 
 #Procedure: draw
@@ -80,14 +144,19 @@ def draw():
     Draw start screen, play screen, or end screen
     """
     if game_status == 0:
-        screen.draw.text("Press ENTER to start", (100, 300),color="white", fontsize=32)
+        screen.draw.text("Press ENTER to start", (WIDTH/2-120, 200),color="white", fontsize=32)
+        screen.draw.text("Use arrow keys to move\nPress space to jump\nPress 'e' to enter a side room\nPress 'd' to leave a side room\n\n\nMove through all six levels of Davis as quickly as possible!\nSome side rooms have medical supplies. Wash your hands for\n10 seconds in a side room to gain health, but watch out for CGR!",(70,300),color="white",fontsize=32)
     if game_status == 1:   
         draw_game_status_one()
     if game_status == 3:
         draw_game_status_three()
     if game_status == 2:
-        screen.draw.text("Final Time: {:.0f}".format(game_timer), (100, 300),color="white", fontsize=32)
-        screen.draw.text("High Score: {:.0f}".format(max(high_scores)), (100, 400),color="white", fontsize=32)
+        screen.draw.text("You Lost! Final Time: {:.0f}\n\nFinal Level: {}".format(game_timer,game_level), (100, 300),color="white", fontsize=32)
+        screen.draw.text("Press ENTER to restart", (100, 500),color="white", fontsize=32)
+    if game_status == 4:
+        screen.clear()
+        screen.draw.text("Congratulations! You won!", (100, 300),color="white", fontsize=32)
+        screen.draw.text("Final Time: {:.0f}".format(game_timer), (100, 400),color="white", fontsize=32)
         screen.draw.text("Press ENTER to restart", (100, 500),color="white", fontsize=32)
 
 
@@ -98,15 +167,12 @@ def update():
     """
     Updates various objects to maintain the current state of the game.    
     """
-    global game_status, high_scores, game_timer, sideRoom, old_position, CGR_hit, sideRoom, sideRoomChoice, wash_hands
+    global health, background, game_level, game_status, game_timer, sideRoom, old_position, CGR_hit, sideRoom, sideRoomChoice, wash_hands
     if game_status == 0:
         if (keyboard.RETURN):
-            game_status = 1
+            game_status = 1  
     elif game_status == 2:
-        temp_time = round(game_timer,0)
-        if not temp_time in high_scores:
-            screen.clear()
-            high_scores.append(temp_time)
+        screen.clear()
         if (keyboard.RETURN):
             reset()
             game_status = 1
@@ -114,11 +180,18 @@ def update():
         if health < 1:
             screen.clear()
             game_status = 2
+        if background.levelComplete():
+            game_level += 1
+            if game_level >= 7:
+                game_status = 4
+            else:
+                level_title = "{}1.png".format(str(chr(96 + game_level)))
+                background = Background(level_title)
         game_timer += .017
         move_cadet()
         move_corona()
         detect_hits()
-        if (keyboard.e): #For now, press "e" to enter side room
+        if (keyboard.e) and background.isDoor(): #Press "e" to enter side room
             old_position = cadet.pos
             sideRoom = True
             game_status = 3
@@ -134,15 +207,19 @@ def update():
             detect_CGR_hit()
         if "Health" in sideRoomChoice:
             detect_health_hit()
-        if (keyboard.d): #For now, press "d" to leave side room
+        if (keyboard.d): #Press "d" to leave side room
             screen.clear()
             cadet.pos = old_position
-            corona.pos = (WIDTH,random.randint(30,550))
+            corona.pos = (WIDTH,random.randint(215,550))
             game_status = 1
             CGR_hit = False
             wash_hands = 0
             sideRoomChoice = []
-            
+    elif game_status == 4:
+        if (keyboard.RETURN):
+            reset()
+            game_status = 1
+        
         
 ###Other functions
 
@@ -162,7 +239,7 @@ def draw_game_status_one():
     """
     global health, corona_hit
     screen.clear()
-    screen.blit(background, (0,190))
+    background.blit()
     screen.draw.text("Game Time: {:.0f}".format(game_timer), (0, 0))
     screen.draw.text("Health Level: {:.0f}".format(health), (650, 0))
     if not corona_hit:
@@ -170,7 +247,7 @@ def draw_game_status_one():
     else:
         health -= 1
         corona_hit = False
-        corona.pos = (WIDTH,random.randint(30,550))
+        corona.pos = (WIDTH,random.randint(215,550))
         corona.draw()
     cadet.draw()
     
@@ -180,11 +257,12 @@ def draw_game_status_three():
     While playing game, draws side room
     """
     screen.clear()
+    screen.blit(sideroomscene,(0,0))
     if CGR_hit:
         cadet.bottomleft = (0,550)
         screen.draw.text("Game Time: {:.0f}".format(game_timer), (0, 0))
         screen.draw.text("Health Level: {:.0f}".format(health), (650, 0))
-        screen.draw.text("CGR! Press 'd' to leave the room!",(WIDTH/2,HEIGHT/2))
+        screen.draw.text("CGR! Press 'd' to leave the room!",(WIDTH/2-130,HEIGHT/2))
         Health.pos = (60, 100)
         CGR.pos = (random.randint(0,WIDTH),random.randint(0,HEIGHT))
     else:        
@@ -206,13 +284,21 @@ def reset():
     After the end screen before starting a new game, this procedure resets
     global variables.
     """
-    global health, game_timer, isJump, jumpCount, corona_hit
-    health = 2
+    global health, background, game_level, game_status, game_timer, sideRoom, old_position, CGR_hit, sideRoom, sideRoomChoice, wash_hands
+    game_level = 1
     game_timer = 0
-    cadet.bottomleft = (0,550)
+    health = 5
+    corona_hit = False
     isJump = False
     jumpCount = 10
-    corona_hit = False
+    sideRoom = False
+    sideRoomChoice = []
+    old_position = (0,550)
+    initiate_room = True
+    CGR_movement = (random.random() * random.choice((-1, 1)),random.random() * random.choice((-1, 1)))
+    CGR_hit = False
+    wash_hands = 0
+    background = Background("a1.png")
 
 #Procedure: move_cadet
 def move_cadet():
@@ -232,10 +318,12 @@ def move_cadet():
             jumpCount = 10
     if (keyboard.left):
         if (cadet.x > 40):
-            cadet.x -= 4
+            background.scroll(4)
+            corona.right += 3.5
     if (keyboard.right):
         if (cadet.x < 760):
-            cadet.x += 4
+            background.scroll(-4)
+            corona.right -= 3.5
 
 #Procedure: move_corona
 def move_corona():
@@ -244,8 +332,8 @@ def move_corona():
     If the corona crosses the left boundary, reset it at a random height.
     """
     if corona.right < 0:
-        corona.pos = (WIDTH,random.randint(30,550))
-    corona.pos = (corona.x - 3.5, corona.y)
+        corona.pos = (WIDTH,random.randint(215,550))
+    corona.pos = (corona.x - (3 + .5*game_level), corona.y)
 
 #Procedure: detect_hits
 def detect_hits():
@@ -309,7 +397,7 @@ def random_walk_initiator():
     """
     global initiate_room
     if initiate_room:
-        clock.schedule_interval(random_walk,3)
+        clock.schedule_interval(random_walk,2)
         initiate_room = False
 
 #Procedure: random_walk
@@ -320,8 +408,8 @@ def random_walk():
     global variable CGR_movement
     """
     global CGR_movement
-    dx = random.random() * random.choice((-1, 1))
-    dy = random.random() * random.choice((-1, 1))
+    dx = 4*random.random() * random.choice((-1, 1))
+    dy = 4*random.random() * random.choice((-1, 1))
     CGR_movement = (dx,dy)
     return CGR_movement
     
@@ -330,13 +418,18 @@ def move_CGR():
     """
     Randomly move CGR around game space
     """
+    global CGR_movement
     if (CGR.midtop[1] <= 0):
+        CGR_movement = ( CGR_movement[0],-1* CGR_movement[1] )
         CGR.y += 1
     if (CGR.midbottom[1] >= HEIGHT):
+        CGR_movement = ( CGR_movement[0],-1* CGR_movement[1] )
         CGR.y -= 1
     if (CGR.midleft[0] <= 0):
+        CGR_movement = ( -1 * CGR_movement[0],CGR_movement[1] )
         CGR.x += 1
     if (CGR.midright[0] >= WIDTH):
+        CGR_movement = ( -1 * CGR_movement[0],CGR_movement[1] )
         CGR.x -= 1
     if (CGR.midtop[1] > 0) and (CGR.midbottom[1] < HEIGHT):
         CGR.y += CGR_movement[1]
@@ -350,7 +443,7 @@ def detect_CGR_hit():
     """
     global CGR_hit
     if cadet.colliderect(CGR):
-        CGR_hit = True        
+        CGR_hit = True
 
 #Procedure: detect_health_hit       
 def detect_health_hit():
