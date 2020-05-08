@@ -7,7 +7,7 @@ move an avatar across the level; each level represents one floor of Davis barrac
 For every increasing floor of Davis, the difficulty of the game increases.
 While in the hallway, players must jump to avoid the airborne coronavirus particles.
 On each floor there are several doors that players can choose to enter; each room
-randomly contains either CGR or medical supplies. Medical supplies increases the player's
+randomly contains either CGR or medical supplies. Medical supplies increase the player's
 health, giving them more times they can be hit by coronavirus before becoming infected and losing.
 Running into CGR forces players to leave the side room. The code displays a basic start screen
 with starting instructions. The variables necessary to play are game_status 
@@ -37,7 +37,9 @@ HEIGHT = 600
 #Actors
 cadet = Actor('fullcadet')
 cadet.bottomleft = (WIDTH/2,550)
-
+cadet.collideRect = pygame.rect.Rect((0, 0), (20,150))
+cadet.collideRect.midbottom = cadet.midbottom
+    
 corona = Actor('corona')
 corona.pos = (WIDTH,random.randint(215,550))
 
@@ -45,7 +47,7 @@ Health = Actor('healthboost')
 Health.pos = (60,100)
 
 CGR = Actor('cgrmonster')
-CGR.pos = (random.randint(0,WIDTH),random.randint(0,HEIGHT))
+CGR.pos = (WIDTH/2,100)
 
 #Variables
 game_status = 0 #Status 0 = start screen, 1 = playing game, 2 = death screen, 3 = side room, 4 = finish screen
@@ -130,8 +132,6 @@ class Background():
             return True
     
 background = Background("a1.png") #Level 1 background
-
-
 sideroomscene = ('sideroombackground') #Side Room background
 
 ###Top Level Procedures (Draw and Update)
@@ -145,7 +145,7 @@ def draw():
     """
     if game_status == 0:
         screen.draw.text("Press ENTER to start", (WIDTH/2-120, 200),color="white", fontsize=32)
-        screen.draw.text("Use arrow keys to move\nPress space to jump\nPress 'e' to enter a side room\nPress 'd' to leave a side room\n\n\nMove through all six levels of Davis as quickly as possible!\nSome side rooms have medical supplies. Wash your hands for\n10 seconds in a side room to gain health, but watch out for CGR!",(70,300),color="white",fontsize=32)
+        screen.draw.text("Use arrow keys to move\nPress space to jump\nPress 'e' to enter a side room\nPress 'd' to leave a side room\n\n\nMove through all six levels of Davis as quickly as possible!\nSome side rooms have medical supplies. Wash your hands\nin a side room to gain health, but watch out for CGR!",(70,300),color="white",fontsize=32)
     if game_status == 1:   
         draw_game_status_one()
     if game_status == 3:
@@ -208,13 +208,22 @@ def update():
         if "Health" in sideRoomChoice:
             detect_health_hit()
         if (keyboard.d): #Press "d" to leave side room
-            screen.clear()
-            cadet.pos = old_position
-            corona.pos = (WIDTH,random.randint(215,550))
-            game_status = 1
-            CGR_hit = False
-            wash_hands = 0
-            sideRoomChoice = []
+            if CGR_hit:
+                screen.clear()
+                cadet.pos = old_position
+                corona.pos = (WIDTH,random.randint(215,550))
+                game_status = 1
+                CGR_hit = False
+                wash_hands = 0
+                sideRoomChoice = []
+            if (30 < cadet.x < 144) and (492 < cadet.y < 530):
+                screen.clear()
+                cadet.pos = old_position
+                corona.pos = (WIDTH,random.randint(215,550))
+                game_status = 1
+                CGR_hit = False
+                wash_hands = 0
+                sideRoomChoice = []
     elif game_status == 4:
         if (keyboard.RETURN):
             reset()
@@ -260,14 +269,14 @@ def draw_game_status_three():
     screen.blit(sideroomscene,(0,0))
     if CGR_hit:
         cadet.bottomleft = (0,550)
-        screen.draw.text("Game Time: {:.0f}".format(game_timer), (0, 0))
-        screen.draw.text("Health Level: {:.0f}".format(health), (650, 0))
-        screen.draw.text("CGR! Press 'd' to leave the room!",(WIDTH/2-130,HEIGHT/2))
+        screen.draw.text("Game Time: {:.0f}".format(game_timer),(10, 0),color = "black")       
+        screen.draw.text("Health Level: {:.0f}".format(health), (650, 0),color = "black")
+        screen.draw.text("CGR! Press 'd' to leave the room!",(WIDTH/2-130,HEIGHT/2),color = "black")
         Health.pos = (60, 100)
-        CGR.pos = (random.randint(0,WIDTH),random.randint(0,HEIGHT))
+        CGR.pos = (WIDTH/2,100)
     else:        
-        screen.draw.text("Game Time: {:.0f}".format(game_timer), (0, 0))
-        screen.draw.text("Health Level: {:.0f}".format(health), (650, 0))
+        screen.draw.text("Game Time: {:.0f}".format(game_timer), (0, 0),color = "black")
+        screen.draw.text("Health Level: {:.0f}".format(health), (650, 0),color = "black")
         cadet.draw()
         if "Health" in sideRoomChoice and "CGR" not in sideRoomChoice:
             Health.draw()
@@ -318,12 +327,12 @@ def move_cadet():
             jumpCount = 10
     if (keyboard.left):
         if (cadet.x > 40):
-            background.scroll(4)
-            corona.right += 3.5
+            background.scroll(5)
+            corona.right += 5
     if (keyboard.right):
         if (cadet.x < 760):
-            background.scroll(-4)
-            corona.right -= 3.5
+            background.scroll(-5)
+            corona.right -= 5
 
 #Procedure: move_corona
 def move_corona():
@@ -333,7 +342,7 @@ def move_corona():
     """
     if corona.right < 0:
         corona.pos = (WIDTH,random.randint(215,550))
-    corona.pos = (corona.x - (3 + .5*game_level), corona.y)
+    corona.pos = (corona.x - (4 + .5*game_level), corona.y)
 
 #Procedure: detect_hits
 def detect_hits():
@@ -341,7 +350,8 @@ def detect_hits():
     While playing game, this procedure determines if the cadet was hit by Corona
     """
     global corona_hit
-    if cadet.colliderect(corona):
+    cadet.collideRect.midbottom = cadet.midbottom
+    if corona.colliderect(cadet.collideRect):
         corona_hit = True
 
 #Procedure: game_status_three
@@ -366,10 +376,10 @@ def random_choices():
             CGR.pos = (-100,-100)
         if "CGR" in sideRoomChoice and "Health" not in sideRoomChoice:
             Health.pos = (-100,-100)
-            CGR.pos = (random.randint(0,WIDTH),random.randint(0,HEIGHT))
+            CGR.pos = (WIDTH/2,100)
         if "CGR" in sideRoomChoice and "Health" in sideRoomChoice:
             Health.pos = (60,100)
-            CGR.pos = (random.randint(0,WIDTH),random.randint(0,HEIGHT))
+            CGR.pos = (WIDTH/2,100)
    
 #Procedure: move_cadet
 def move_cadet_sideroom():
@@ -397,7 +407,7 @@ def random_walk_initiator():
     """
     global initiate_room
     if initiate_room:
-        clock.schedule_interval(random_walk,2)
+        clock.schedule_interval(random_walk,3)
         initiate_room = False
 
 #Procedure: random_walk
@@ -408,8 +418,8 @@ def random_walk():
     global variable CGR_movement
     """
     global CGR_movement
-    dx = 4*random.random() * random.choice((-1, 1))
-    dy = 4*random.random() * random.choice((-1, 1))
+    dx = 2.5*random.random() * random.choice((-1, 1))
+    dy = 2.5*random.random() * random.choice((-1, 1))
     CGR_movement = (dx,dy)
     return CGR_movement
     
@@ -449,12 +459,12 @@ def detect_CGR_hit():
 def detect_health_hit():
     """
     While playing side game, this procedure determines if the cadet washes
-    its hands. After 10 seconds, the cadet gets a health bonus.
+    its hands and gets a health bonus.
     """
     global wash_hands, health
     if cadet.colliderect(Health):
         wash_hands += .017
-    if wash_hands >= 10:
+    if wash_hands >= 7.5:
         wash_hands = 0
         Health.pos = (-100,-100)
         health += 1
